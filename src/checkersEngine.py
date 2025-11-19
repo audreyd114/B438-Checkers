@@ -45,9 +45,9 @@ def is_king(piece: Piece) -> bool:
 
 
 def promote(piece: Piece, row: int) -> Piece:
-    if piece == Piece.RED and row == BOARD_SIZE - 1:
+    if piece == Piece.RED and row == 0:
         return Piece.RED_KING
-    if piece == Piece.BLACK and row == 0:
+    if piece == Piece.BLACK and row == BOARD_SIZE - 1:
         return Piece.BLACK_KING
     return piece
 
@@ -64,16 +64,16 @@ class Board:
         self.setup_initial()
 
     def setup_initial(self):
-        # Place RED on rows 0-2 on dark squares, BLACK on rows 5-7
+        # Place RED on rows 5-7 on dark squares, BLACK on rows 0-2
         for r in range(BOARD_SIZE):
             for c in range(BOARD_SIZE):
                 if not is_dark_square(r, c):
                     self.grid[r][c] = Piece.EMPTY
                     continue
                 if r <= 2:
-                    self.grid[r][c] = Piece.RED
-                elif r >= 5:
                     self.grid[r][c] = Piece.BLACK
+                elif r >= 5:
+                    self.grid[r][c] = Piece.RED
                 else:
                     self.grid[r][c] = Piece.EMPTY
 
@@ -214,9 +214,9 @@ def _find_simple_moves_from(self, r: int, c: int) -> List[List[Tuple[int, int]]]
         steps = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
     else:
         if owner == Player.RED:
-            steps = [(1, -1), (1, 1)]
-        else:
             steps = [(-1, -1), (-1, 1)]
+        else:
+            steps = [(1, -1), (1, 1)]
     for dr, dc in steps:
         nr, nc = r + dr, c + dc
         if not self.in_bounds(nr, nc):
@@ -257,9 +257,9 @@ def _find_captures_from(self, r: int, c: int) -> List[List[Tuple[int, int]]]:
                 continue
             # Movement/capture legality for men: men (non-kings) may only capture forward in American checkers.
             if not is_king(p):
-                if owner == Player.RED and dr < 0:
+                if owner == Player.RED and dr > 0:
                     continue
-                if owner == Player.BLACK and dr > 0:
+                if owner == Player.BLACK and dr < 0:
                     continue
             # perform capture on snapshot
             new_snapshot = board_snapshot.clone()
