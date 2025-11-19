@@ -85,7 +85,7 @@ class NetworkedCheckersApp:
         self.server = networkTCP.TCPServer(port, on_msg, on_client_connected)
         self.tcp_conn_interface = self.server
         self.local_side = Player.RED
-        messagebox.showinfo("Hosting", f"Listening on port {port}. You are RED (top) and start first.")
+        messagebox.showinfo("Hosting", f"Listening on port {port}. You are RED (bottom) and start first.")
         self._append_status("Hosting; waiting for client...")
 
     def connect(self):
@@ -100,7 +100,7 @@ class NetworkedCheckersApp:
         self.client = networkTCP.TCPClient(host, port, on_msg, on_connect)
         self.tcp_conn_interface = self.client
         self.local_side = Player.BLACK
-        messagebox.showinfo("Connect", f"Attempting to connect to {host}:{port}. You are BLACK (bottom).")
+        messagebox.showinfo("Connect", f"Attempting to connect to {host}:{port}. You are BLACK (top).")
 
     def _append_status(self, text):
         print("[STATUS]", text)
