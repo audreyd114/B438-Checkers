@@ -110,7 +110,16 @@ class Board:
                     char = 'B'
                 row.append(char)
             lines.append(' '.join(row))
-        return '.join(lines)'
+        return '\n'.join(lines)
+
+    # TEMPORARY Debugging legal moves bug !!!!!!!
+    def moves_by_piece(self, player: Player, max_capture: bool = True):
+        all_moves = self.legal_moves(player, max_capture=max_capture)
+        d = {}
+        for m in all_moves:
+            start = m[0]
+            d.setdefault(start, []).append(m)
+        return d
 
     # Public API
     def legal_moves(self, player: Player, max_capture: bool = True) -> List[List[Tuple[int, int]]]:
@@ -203,15 +212,14 @@ class Board:
         if piece == Piece.EMPTY:
             return moves
         owner = piece_owner(piece)
-        # movement directions: for RED men, down (r+1); for BLACK men, up (r-1).
         steps = []
         if is_king(piece):
             steps = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
         else:
             if owner == Player.RED:
-                steps = [(-1, -1), (-1, 1)]
+                steps = [(1, -1), (1, 1)]  # RED moves down (increasing row)
             else:
-                steps = [(1, -1), (1, 1)]
+                steps = [(-1, -1), (-1, 1)]  # BLACK moves up (decreasing row)
         for dr, dc in steps:
             nr, nc = r + dr, c + dc
             if not self.in_bounds(nr, nc):
@@ -221,15 +229,10 @@ class Board:
         return moves
 
     def _find_captures_from(self, r: int, c: int) -> List[List[Tuple[int, int]]]:
-        # Find all capture sequences starting from (r,c) for the piece on that square.
-        # Returns list of sequences, each sequence is list of positions visited.
-        # Uses DFS to explore multi-jump sequences. Does not modify the real board; works on a temporary copy.
-
         piece = self.get(r, c)
         if piece == Piece.EMPTY:
             return []
         owner = piece_owner(piece)
-
         results = []
 
         def dfs(board_snapshot: Board, cur_r: int, cur_c: int, path: List[Tuple[int, int]]):
@@ -237,10 +240,15 @@ class Board:
             p = board_snapshot.get(cur_r, cur_c)
             directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
             for dr, dc in directions:
-                mid_r = cur_r + dr
-                mid_c = cur_c + dc
-                land_r = cur_r + 2*dr
-                land_c = cur_c + 2*dc
+                # Men cannot capture backward in American checkers
+                if not is_king(p):
+                    if owner == Player.RED and dr < 0:
+                        continue
+                    if owner == Player.BLACK and dr > 0:
+                        continue
+
+                mid_r, mid_c = cur_r + dr, cur_c + dc
+                land_r, land_c = cur_r + 2*dr, cur_c + 2*dc
                 if not (board_snapshot.in_bounds(mid_r, mid_c) and board_snapshot.in_bounds(land_r, land_c)):
                     continue
                 mid_piece = board_snapshot.get(mid_r, mid_c)
@@ -249,30 +257,17 @@ class Board:
                     continue
                 if piece_owner(mid_piece) is None or piece_owner(mid_piece) == owner:
                     continue
-                # Movement/capture legality for men: men (non-kings) may only capture forward in American checkers.
-                if not is_king(p):
-                    if owner == Player.RED and dr > 0:
-                        continue
-                    if owner == Player.BLACK and dr < 0:
-                        continue
-                # perform capture on snapshot
+                # capture is valid
                 new_snapshot = board_snapshot.clone()
-                # remove captured
                 new_snapshot.set(mid_r, mid_c, Piece.EMPTY)
-                # move piece
                 new_snapshot.set(cur_r, cur_c, Piece.EMPTY)
                 new_snapshot.set(land_r, land_c, p)
-                # promotion only after finishing the entire move in American checkers
                 dfs(new_snapshot, land_r, land_c, path + [(land_r, land_c)])
                 moved = True
-            if not moved:
-                # no further captures; path is complete
-                if len(path) > 1:
-                    results.append(path)
+            if not moved and len(path) > 1:
+                results.append(path)
 
-        # initial call: path starts with source square
         dfs(self.clone(), r, c, [(r, c)])
-        # perform promotion for final landing squares in results
         return results
 
 
