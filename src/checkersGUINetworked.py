@@ -64,8 +64,8 @@ class NetworkedCheckersApp:
         self.local_side: Optional[Player] = None  # which color this instance controls
         self.conn = None  # networkTCP.TCPServer or TCPClient
         self.tcp_conn_interface = None  # wrapper for sending (has send method)
-        self.selected: Optional[Tuple[int,int]] = None
-        self.valid_moves_cache: List[List[Tuple[int,int]]] = []
+        self.selected: Optional[Tuple[int, int]] = None
+        self.valid_moves_cache: List[List[Tuple[int, int]]] = []
         self.canvas.bind("<Button-1>", self.on_click)
         self.draw_board()
 
@@ -75,7 +75,7 @@ class NetworkedCheckersApp:
 
     def reset_board(self):
         self.board = Board()
-        self.move_listbox.delete(0, tk.END) # Reset Lucita's move history box
+        self.move_listbox.delete(0, tk.END)  # Reset Lucita's move history box
         self.current_player = Player.RED
         self.turn_label.config(text="Turn: RED")
         self.selected = None
@@ -92,11 +92,11 @@ class NetworkedCheckersApp:
 
         def on_client_connected():
             self._append_status("Client connected.")
-        self.server = networkTCP.TCPServer(port, on_msg, on_client_connected)
-        self.tcp_conn_interface = self.server
-        self.local_side = Player.RED
-        messagebox.showinfo("Hosting", f"Listening on port {port}. You are RED (bottom) and start first.")
-        self._append_status("Hosting; waiting for client...")
+            self.server = networkTCP.TCPServer(port, on_msg, on_client_connected)
+            self.tcp_conn_interface = self.server
+            self.local_side = Player.RED
+            messagebox.showinfo("Hosting", f"Listening on port {port}. You are RED (bottom) and start first.")
+            self._append_status("Hosting; waiting for client...")
 
     def connect(self):
         host = self.host_var.get()
@@ -107,10 +107,10 @@ class NetworkedCheckersApp:
 
         def on_connect():
             self._append_status("Connected to host.")
-        self.client = networkTCP.TCPClient(host, port, on_msg, on_connect)
-        self.tcp_conn_interface = self.client
-        self.local_side = Player.BLACK
-        messagebox.showinfo("Connect", f"Attempting to connect to {host}:{port}. You are BLACK (top).")
+            self.client = networkTCP.TCPClient(host, port, on_msg, on_connect)
+            self.tcp_conn_interface = self.client
+            self.local_side = Player.BLACK
+            messagebox.showinfo("Connect", f"Attempting to connect to {host}:{port}. You are BLACK (top).")
 
     def _append_status(self, text):
         print("[STATUS]", text)
@@ -144,7 +144,7 @@ class NetworkedCheckersApp:
         else:
             self._append_status("Unknown protocol message: " + raw)
 
-    def send_move_over_network(self, move_positions: List[Tuple[int,int]]):
+    def send_move_over_network(self, move_positions: List[Tuple[int, int]]):
         if not self.tcp_conn_interface:
             return
         seq = '-'.join(pos_to_alg(p) for p in move_positions)
@@ -252,13 +252,19 @@ class NetworkedCheckersApp:
         for m in self.valid_moves_cache:
             dest = m[-1]
             r, c = dest
-            x0 = c*CELL; y0 = r*CELL; x1 = x0+CELL; y1 = y0+CELL
+            x0 = c*CELL
+            y0 = r*CELL
+            x1 = x0+CELL
+            y1 = y0+CELL
             self.canvas.create_rectangle(x0+4, y0+4, x1-4, y1-4, outline="yellow", width=3)
 
         # highlight selected
         if self.selected:
             r, c = self.selected
-            x0 = c*CELL; y0 = r*CELL; x1 = x0+CELL; y1 = y0+CELL
+            x0 = c*CELL
+            y0 = r*CELL
+            x1 = x0+CELL
+            y1 = y0+CELL
             self.canvas.create_rectangle(x0+2, y0+2, x1-2, y1-2, outline="cyan", width=3)
 
         # draw pieces

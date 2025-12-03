@@ -110,13 +110,13 @@ class Board:
                     char = 'B'
                 row.append(char)
             lines.append(' '.join(row))
-        return '.join(lines)'
+        return '\n'.join(lines)
 
     # Public API
     def legal_moves(self, player: Player, max_capture: bool = True) -> List[List[Tuple[int, int]]]:
         # Return a list of legal moves for player.
         # If max_capture=True then if any capture moves exist, only return capture sequences that capture the maximum
-        # number of opponent pieces (this matches stricter tournament variants). If False, return all capturing sequences
+        # number of opponent pieces. If False, return all capturing sequences
         # (still respecting mandatory capture rule), or all quiet moves if no captures are available.
 
         captures = []  # list of capture sequences (list of squares)
@@ -232,6 +232,8 @@ class Board:
 
         results = []
 
+        forward_dir = -1 if owner == Player.RED else 1
+
         def dfs(board_snapshot: Board, cur_r: int, cur_c: int, path: List[Tuple[int, int]]):
             moved = False
             p = board_snapshot.get(cur_r, cur_c)
@@ -251,10 +253,12 @@ class Board:
                     continue
                 # Movement/capture legality for men: men (non-kings) may only capture forward in American checkers.
                 if not is_king(p):
-                    if owner == Player.RED and dr > 0:
+                    if dir != forward_dir:
                         continue
-                    if owner == Player.BLACK and dr < 0:
-                        continue
+                   # if owner == Player.RED and dr > 0:
+                   #     continue
+                   # if owner == Player.BLACK and dr < 0:
+                   #     continue
                 # perform capture on snapshot
                 new_snapshot = board_snapshot.clone()
                 # remove captured
