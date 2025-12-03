@@ -35,7 +35,7 @@ class NetworkedCheckersApp:
         control.pack(side=tk.RIGHT, fill=tk.Y, padx=6, pady=6)
 
         # network controls
-        tk.Label(control, text="Networking (TCP 1↔1)").pack()
+        tk.Label(control, text="Networking (TCP 1 to 1)").pack()
         tk.Button(control, text="Host (RED, listen)", command=self.host).pack(fill=tk.X)
         tk.Button(control, text="Connect (BLACK)", command=self.connect).pack(fill=tk.X)
         tk.Label(control, text="Port:").pack()
@@ -46,13 +46,22 @@ class NetworkedCheckersApp:
         tk.Entry(control, textvariable=self.host_var).pack()
 
         # game controls
-        self.turn_label = tk.Label(control, text="Turn: RED")
+        self.turn_label = tk.Label(control, text="Turn: RED", font=("Helvetica", 18, "bold"), fg="black")
         self.turn_label.pack(pady=8)
         tk.Button(control, text="Reset Board", command=self.reset_board).pack(fill=tk.X)
 
+        # Lucita's Move history listbox
+        history_frame = tk.LabelFrame(control, text="Move History", padx=6, pady=6)
+        history_frame.pack(fill=tk.BOTH, expand=True, pady=(8, 0))
+        self.move_listbox = tk.Listbox(history_frame, width=28, height=20)
+        self.move_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        sb = tk.Scrollbar(history_frame, orient=tk.VERTICAL, command=self.move_listbox.yview)
+        sb.pack(side=tk.RIGHT, fill=tk.Y)
+        self.move_listbox.config(yscrollcommand=sb.set)
+
         # internals
-        self.current_player = Player.RED  # RED on top by convention; host will be RED
-        self.local_side: Optional[Player] = None  # which color this instance controls (set after host/connect)
+        self.current_player = Player.RED  # RED on bottom; host will be RED
+        self.local_side: Optional[Player] = None  # which color this instance controls
         self.conn = None  # networkTCP.TCPServer or TCPClient
         self.tcp_conn_interface = None  # wrapper for sending (has send method)
         self.selected: Optional[Tuple[int,int]] = None
@@ -66,6 +75,7 @@ class NetworkedCheckersApp:
 
     def reset_board(self):
         self.board = Board()
+        self.move_listbox.delete(0, tk.END) # Reset Lucita's move history box
         self.current_player = Player.RED
         self.turn_label.config(text="Turn: RED")
         self.selected = None
@@ -140,7 +150,7 @@ class NetworkedCheckersApp:
         seq = '-'.join(pos_to_alg(p) for p in move_positions)
         self.tcp_conn_interface.send(f"MOVE {seq}")
 
-    # GUI interactions ------------------------------------------------
+    # GUI interactions
     def on_click(self, event):
         col = event.x // CELL
         row = event.y // CELL
@@ -166,6 +176,7 @@ class NetworkedCheckersApp:
                     # apply move
                     self.board.apply_move(m)
                     self.send_move_over_network(m)
+                    self.append_move_history(m)
                     # promotion handled by core.apply_move
                     # update turn
                     self.current_player = Player.RED if self.current_player == Player.BLACK else Player.BLACK
@@ -198,6 +209,32 @@ class NetworkedCheckersApp:
             self.selected = None
         self.draw_board()
 
+    # Lucita's move history function modified to fit current version
+    def append_move_history(self, move_positions: List[Tuple[int, int]]):
+        # convert to algebraic text
+        start_alg = pos_to_alg(move_positions[0])
+        end_alg = pos_to_alg(move_positions[-1])
+
+        # finds who just moved
+        mover = Player.RED if self.current_player == Player.BLACK else Player.BLACK
+        mover_name = "BLACK" if mover == Player.RED else "RED"
+
+        # count captures by counting jumps
+        captures = 0
+        for i in range(1, len(move_positions)):
+            r0, c0 = move_positions[i-1]
+            r1, c1 = move_positions[i]
+            if abs(r1 - r0) == 2 or abs(c1 - c0) == 2:
+                captures += 1
+
+        if captures > 0:
+            text = f"{mover_name}: {start_alg} -> {end_alg} (captures {captures})"
+        else:
+            text = f"{mover_name}: {start_alg} -> {end_alg}"
+
+        self.move_listbox.insert(tk.END, text)
+        self.move_listbox.yview_moveto(1.0)
+
     def draw_board(self):
         self.canvas.delete("all")
         # draw squares
@@ -208,9 +245,9 @@ class NetworkedCheckersApp:
                 x1 = x0 + CELL
                 y1 = y0 + CELL
                 if (r + c) % 2 == 0:
-                    self.canvas.create_rectangle(x0, y0, x1, y1, fill="#EEE", outline="")
+                    self.canvas.create_rectangle(x0, y0, x1, y1, fill="#F0D9B5", outline="")
                 else:
-                    self.canvas.create_rectangle(x0, y0, x1, y1, fill="#6B8E23", outline="")
+                    self.canvas.create_rectangle(x0, y0, x1, y1, fill="#B58863", outline="")
         # highlight valid destinations
         for m in self.valid_moves_cache:
             dest = m[-1]
@@ -241,7 +278,7 @@ class NetworkedCheckersApp:
                 rad = CELL//2 - 8
                 self.canvas.create_oval(cx-rad, cy-rad, cx+rad, cy+rad, fill=fill)
                 if p.name.endswith("KING"):
-                    self.canvas.create_text(cx, cy, text="K", fill="white", font=("Helvetica", 16, "bold"))
+                    self.canvas.create_text(cx, cy, text="K", fill="yellow", font=("Trebuchet MS", 16, "bold"))
 
 
 if __name__ == '__main__':
