@@ -184,6 +184,12 @@ class NetworkedCheckersApp:
                     self.selected = None
                     self.valid_moves_cache = []
                     self.draw_board()
+                    # Game over check
+                    if self.board.is_game_over():
+                        winner = self.board.winner()
+                        self.show_winner_popup(winner)
+                        self.canvas.unbind("<Button-1>")  # disable board
+
                     return
             # if click on another of our pieces, change selection
             if owner == self.current_player:
@@ -285,6 +291,14 @@ class NetworkedCheckersApp:
                 self.canvas.create_oval(cx-rad, cy-rad, cx+rad, cy+rad, fill=fill)
                 if p.name.endswith("KING"):
                     self.canvas.create_text(cx, cy, text="K", fill="yellow", font=("Trebuchet MS", 16, "bold"))
+
+    def show_winner_popup(winner):
+        if winner is None:
+            messagebox.showinfo("Game Over", "It's a draw!")
+        elif winner == Player.RED:
+            messagebox.showinfo("Game Over", "Red wins!")
+        else:
+            messagebox.showinfo("Game Over", "Black wins!")
 
 
 if __name__ == '__main__':
