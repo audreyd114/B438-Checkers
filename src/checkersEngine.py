@@ -253,7 +253,7 @@ class Board:
                     continue
                 # Movement/capture legality for men: men (non-kings) may only capture forward in American checkers.
                 if not is_king(p):
-                    if dir != forward_dir:
+                    if dr != forward_dir:
                         continue
                    # if owner == Player.RED and dr > 0:
                    #     continue
