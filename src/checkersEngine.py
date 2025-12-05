@@ -15,8 +15,8 @@ BOARD_SIZE = 8
 
 
 class Player(Enum):
-    RED = auto()   # starts at top and moves down (row increasing)
-    BLACK = auto()  # starts at bottom and moves up (row decreasing)
+    RED = auto()   # starts at bottom and moves up
+    BLACK = auto()  # starts at top and moves down
 
 
 class Piece(Enum):
@@ -51,12 +51,6 @@ def promote(piece: Piece, row: int) -> Piece:
         return Piece.BLACK_KING
     return piece
 
-# Move representation:
-# A move is represented as a list of board coordinates (r,c) visited by the moving piece.
-# For a single non-capturing move: [(r1,c1), (r2,c2)]
-# For captures (including multi-jumps): [(r1,c1), (r2,c2), (r3,c3), ...]
-# Where intermediate steps indicate landing squares after each jump.
-
 
 class Board:
     def __init__(self):
@@ -64,7 +58,6 @@ class Board:
         self.setup_initial()
 
     def setup_initial(self):
-        # Place RED on rows 5-7 on dark squares, BLACK on rows 0-2
         for r in range(BOARD_SIZE):
             for c in range(BOARD_SIZE):
                 if not is_dark_square(r, c):
@@ -122,23 +115,41 @@ class Board:
         captures = []  # list of capture sequences (list of squares)
         quiets = []    # non-capturing single-step moves
 
+        #for r in range(BOARD_SIZE):
+        #    for c in range(BOARD_SIZE):
+        #        p = self.get(r, c)
+        #        if piece_owner(p) != player:
+        #            continue
+        #        # get captures from this piece
+        #        caps = self._find_captures_from(r, c)
+        #        captures.extend(caps)
+        #        if not caps:
+        #            # if no captures from this piece, consider normal moves
+        #            steps = self._find_simple_moves_from(r, c)
+        #            quiets.extend(steps)
+
+        #if captures:
+        #    if max_capture:
+        #        # filter to only those with maximal capture length
+        #        maxlen = max(len(m)-1 for m in captures)  # number of jumps equals len-1
+        #        best = [m for m in captures if (len(m)-1) == maxlen]
+        #        return best
+        #    return captures
+        #return quiets
+
         for r in range(BOARD_SIZE):
             for c in range(BOARD_SIZE):
                 p = self.get(r, c)
                 if piece_owner(p) != player:
                     continue
-                # get captures from this piece
                 caps = self._find_captures_from(r, c)
-                captures.extend(caps)
-                if not caps:
-                    # if no captures from this piece, consider normal moves
-                    steps = self._find_simple_moves_from(r, c)
-                    quiets.extend(steps)
-
+                if caps:
+                    captures.extend(caps)
+                else:
+                    quiets.extend(self._find_simple_moves_from(r, c))
         if captures:
             if max_capture:
-                # filter to only those with maximal capture length
-                maxlen = max(len(m)-1 for m in captures)  # number of jumps equals len-1
+                maxlen = max(len(m)-1 for m in captures)
                 best = [m for m in captures if (len(m)-1) == maxlen]
                 return best
             return captures
@@ -199,26 +210,44 @@ class Board:
 # Internals
     def _find_simple_moves_from(self, r: int, c: int) -> List[List[Tuple[int, int]]]:
         piece = self.get(r, c)
-        moves = []
         if piece == Piece.EMPTY:
-            return moves
+            return []
         owner = piece_owner(piece)
-        # movement directions: for RED men, down (r+1); for BLACK men, up (r-1).
-        steps = []
+        moves = []
+        # define forward for owner: RED moves up (-1), BLACK moves down (+1)
+        forward_dir = -1 if owner == Player.RED else 1
         if is_king(piece):
-            steps = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+            directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
         else:
-            if owner == Player.RED:
-                steps = [(-1, -1), (-1, 1)]
-            else:
-                steps = [(1, -1), (1, 1)]
-        for dr, dc in steps:
+            directions = [(forward_dir, -1), (forward_dir, 1)]
+        for dr, dc in directions:
             nr, nc = r + dr, c + dc
             if not self.in_bounds(nr, nc):
                 continue
             if self.get(nr, nc) == Piece.EMPTY:
                 moves.append([(r, c), (nr, nc)])
         return moves
+    #    piece = self.get(r, c)
+    #    moves = []
+    #    if piece == Piece.EMPTY:
+    #        return moves
+    #    owner = piece_owner(piece)
+    #    # movement directions: for RED men, down (r+1); for BLACK men, up (r-1).
+    #    steps = []
+    #    if is_king(piece):
+    #        steps = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+    #    else:
+    #        if owner == Player.RED:
+    #            steps = [(-1, -1), (-1, 1)]
+    #        else:
+    #            steps = [(1, -1), (1, 1)]
+    #    for dr, dc in steps:
+    #        nr, nc = r + dr, c + dc
+    #        if not self.in_bounds(nr, nc):
+    #            continue
+    #        if self.get(nr, nc) == Piece.EMPTY:
+    #            moves.append([(r, c), (nr, nc)])
+    #    return moves
 
     def _find_captures_from(self, r: int, c: int) -> List[List[Tuple[int, int]]]:
         # Find all capture sequences starting from (r,c) for the piece on that square.
@@ -230,15 +259,15 @@ class Board:
             return []
         owner = piece_owner(piece)
 
-        results = []
+        #results = []
+        results: List[List[Tuple[int, int]]] = []
 
         forward_dir = -1 if owner == Player.RED else 1
 
         def dfs(board_snapshot: Board, cur_r: int, cur_c: int, path: List[Tuple[int, int]]):
-            moved = False
             p = board_snapshot.get(cur_r, cur_c)
-            directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
-            for dr, dc in directions:
+            moved = False
+            for dr, dc in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
                 mid_r = cur_r + dr
                 mid_c = cur_c + dc
                 land_r = cur_r + 2*dr
@@ -251,33 +280,64 @@ class Board:
                     continue
                 if piece_owner(mid_piece) is None or piece_owner(mid_piece) == owner:
                     continue
-                # Movement/capture legality for men: men (non-kings) may only capture forward in American checkers.
-                if not is_king(p):
-                    if dr != forward_dir:
-                        continue
-                   # if owner == Player.RED and dr > 0:
-                   #     continue
-                   # if owner == Player.BLACK and dr < 0:
-                   #     continue
-                # perform capture on snapshot
-                new_snapshot = board_snapshot.clone()
-                # remove captured
-                new_snapshot.set(mid_r, mid_c, Piece.EMPTY)
-                # move piece
-                new_snapshot.set(cur_r, cur_c, Piece.EMPTY)
-                new_snapshot.set(land_r, land_c, p)
-                # promotion only after finishing the entire move in American checkers
-                dfs(new_snapshot, land_r, land_c, path + [(land_r, land_c)])
+                # men may only capture forward in American checkers
+                if not is_king(p) and dr != forward_dir:
+                    continue
+                # perform capture on snapshot clone
+                new_snap = board_snapshot.clone()
+                new_snap.set(mid_r, mid_c, Piece.EMPTY)
+                new_snap.set(cur_r, cur_c, Piece.EMPTY)
+                new_snap.set(land_r, land_c, p)
+                dfs(new_snap, land_r, land_c, path + [(land_r, land_c)])
                 moved = True
             if not moved:
-                # no further captures; path is complete
                 if len(path) > 1:
                     results.append(path)
 
-        # initial call: path starts with source square
         dfs(self.clone(), r, c, [(r, c)])
-        # perform promotion for final landing squares in results
         return results
+
+        #    directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+        #    for dr, dc in directions:
+        #        mid_r = cur_r + dr
+        #        mid_c = cur_c + dc
+        #        land_r = cur_r + 2*dr
+        #        land_c = cur_c + 2*dc
+        #        if not (board_snapshot.in_bounds(mid_r, mid_c) and board_snapshot.in_bounds(land_r, land_c)):
+        #            continue
+        #        mid_piece = board_snapshot.get(mid_r, mid_c)
+        #        land_piece = board_snapshot.get(land_r, land_c)
+        #        if land_piece != Piece.EMPTY:
+        #            continue
+        #        if piece_owner(mid_piece) is None or piece_owner(mid_piece) == owner:
+        #            continue
+        #        # Movement/capture legality for men: men (non-kings) may only capture forward in American checkers.
+        #        if not is_king(p):
+        #            if dr != forward_dir:
+        #                continue
+        #           # if owner == Player.RED and dr > 0:
+        #           #     continue
+        #           # if owner == Player.BLACK and dr < 0:
+        #           #     continue
+        #        # perform capture on snapshot
+        #        new_snapshot = board_snapshot.clone()
+        #        # remove captured
+        #        new_snapshot.set(mid_r, mid_c, Piece.EMPTY)
+        #        # move piece
+        #        new_snapshot.set(cur_r, cur_c, Piece.EMPTY)
+        #        new_snapshot.set(land_r, land_c, p)
+        #        # promotion only after finishing the entire move in American checkers
+        #        dfs(new_snapshot, land_r, land_c, path + [(land_r, land_c)])
+        #        moved = True
+        #    if not moved:
+        #        # no further captures; path is complete
+        #        if len(path) > 1:
+        #            results.append(path)
+
+        # initial call: path starts with source square
+        #dfs(self.clone(), r, c, [(r, c)])
+        # perform promotion for final landing squares in results
+        #return results
 
 
 # Small helper: convert algebraic-style coordinates to tuple and back
