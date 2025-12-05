@@ -82,21 +82,41 @@ class NetworkedCheckersApp:
         self.valid_moves_cache = []
         self.draw_board()
 
+    #def host(self):
+    #    # start server; hosting instance becomes RED (local player RED)
+    #    port = int(self.port_var.get())
+
+    #    def on_msg(msg):
+    #        # network callback (background thread) -> queue
+    #        self._network_msg_queue.append(msg)
+
+    #    def on_client_connected():
+    #        self._append_status("Client connected.")
+    #        self.server = networkTCP.TCPServer(port, on_msg, on_client_connected)
+    #        self.tcp_conn_interface = self.server
+    #        self.local_side = Player.RED
+    #        messagebox.showinfo("Hosting", f"Listening on port {port}. You are RED (bottom) and start first.")
+    #        self._append_status("Hosting; waiting for client...")
+
     def host(self):
-        # start server; hosting instance becomes RED (local player RED)
         port = int(self.port_var.get())
 
         def on_msg(msg):
-            # network callback (background thread) -> queue
             self._network_msg_queue.append(msg)
 
         def on_client_connected():
             self._append_status("Client connected.")
-            self.server = networkTCP.TCPServer(port, on_msg, on_client_connected)
-            self.tcp_conn_interface = self.server
-            self.local_side = Player.RED
-            messagebox.showinfo("Hosting", f"Listening on port {port}. You are RED (bottom) and start first.")
-            self._append_status("Hosting; waiting for client...")
+            messagebox.showinfo("Connection", "Client connected!")
+
+        self.server = networkTCP.TCPServer(port, on_msg, on_client_connected)
+
+        self.tcp_conn_interface = self.server
+        self.local_side = Player.RED
+
+        messagebox.showinfo("Hosting",
+                            f"Listening on port {port}. You are RED (bottom) and start first.")
+        self._append_status("Hosting; waiting for client...")
+
 
     def connect(self):
         host = self.host_var.get()
