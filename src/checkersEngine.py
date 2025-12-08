@@ -135,16 +135,14 @@ class Board:
                     steps = self._find_simple_moves_from(r, c)
                     quiets.extend(steps)
 
-        return captures + quiets
-
-        #if captures:
-        #    if max_capture:
-        #        # filter to only those with maximal capture length
-        #        maxlen = max(len(m)-1 for m in captures)  # number of jumps equals len-1
-        #        best = [m for m in captures if (len(m)-1) == maxlen]
-        #        return best
-        #    return captures
-        #return quiets
+        if captures:
+            if max_capture:
+                # filter to only those with maximal capture length
+                maxlen = max(len(m)-1 for m in captures)  # number of jumps equals len-1
+                best = [m for m in captures if (len(m)-1) == maxlen]
+                return best
+            return captures
+        return quiets
 
     def apply_move(self, move: List[Tuple[int, int]]):
         # Apply the move to the board. Assumes move is legal. Mutates board.
